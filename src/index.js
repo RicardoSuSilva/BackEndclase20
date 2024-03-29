@@ -2,9 +2,11 @@ import express from 'express'
 import mongoose from 'mongoose'
 import session from 'express-session'
 import MongoStore from 'connect-mongo'
+import passport from 'passport'
 import cookieParser from 'cookie-parser'
 import messageModel from './models/messages.js'
 import indexRouter from './routes/indexRouter.js'
+import initializePassport from './config/passport/passport.js'
 import { Server } from 'socket.io'
 import { engine } from 'express-handlebars'
 import { __dirname } from './path.js'
@@ -22,17 +24,18 @@ const server = app.listen(PORT, () => {
 const io = new Server(server)
 
 //Connection DB 
-mongoose.connect("mongodb+srv://richisusilva:coder1793@cluster0.cyo4cmt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+mongoose.connect("mongodb+srv://richisusilva:passport@cluster0.cyo4cmt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
     .then(() => console.log("DB is connected"))
     .catch(e => console.log(e))
 
 //Middlewares
 app.use(express.json())
+
 app.use(session({
     secret: "coderSecret",
     resave: true,
     store: MongoStore.create({
-        mongoUrl: "mongodb+srv://richisusilva:coder1793@cluster0.cyo4cmt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
+        mongoUrl: "mongodb+srv://richisusilva:passport@cluster0.cyo4cmt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
         ttl: 60 * 60
     }),
     saveUninitialized: true
@@ -42,6 +45,12 @@ app.engine('handlebars', engine())
 app.set('view engine', 'handlebars')
 app.set('views', __dirname + '/views')
 
+//Passport
+initializePassport()
+app.use(passport.initialize())
+app.use(passport.session())
+
+//Routes
 app.use('/', indexRouter)
 
 //Routes Cookies
@@ -71,14 +80,12 @@ app.get('/session', (req, res) => {
     }
 })
 
-app.get('/login', (req, res) => {
+app.post('/login', (req, res) => {
     const { email, password } = req.body
 
     if (email == "admin@admin.com" && password == "1234") {
         req.session.email = email
         req.session.password = password
-
-
     }
     console.log(req.session)
     res.send("Login")
